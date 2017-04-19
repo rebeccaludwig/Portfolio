@@ -1,0 +1,38 @@
+CREATE TRIGGER Trg_Mem_Balance ON Membership
+FOR UPDATE
+AS
+BEGIN
+	DECLARE @Prior_LateFee INT
+	DECLARE @New_LateFee INT
+	DECLARE @Update_Amount INT
+	DECLARE	@Rental_Member INT
+	DECLARE @Rent_Num INT
+	DECLARE	@Detail_DaysLate DATE
+
+	SELECT	@Prior_LateFee = DAY(@Detail_DaysLate) * Detail_DailyLateFee
+	FROM	DETAILRENTAL
+	
+	IF		@Prior_LateFee IS NULL 
+	SET		@Prior_LateFee = 0
+	BEGIN
+	SELECT	@New_LateFee = DAY(@Detail_DaysLate) * Detail_DailyLateFee
+	FROM	DETAILRENTAL
+	
+	IF		@New_LateFee IS NULL
+	SET		@New_LateFee = 0
+	BEGIN
+	SELECT	@Update_Amount = @New_LateFee - @Prior_LateFee
+
+	IF		@Update_Amount <> 0 
+	BEGIN	
+	SELECT	Mem_Num 
+	INTO	Rental_Member
+	FROM	RENTAL
+	WHERE	Rent_Num = @Rent_Num
+
+	UPDATE	MEMBERSHIP
+	SET		Mem_Balance = Mem_Balance + @Update_Amount
+	WHERE	Mem_Num = @Rental_Member
+
+END
+END
